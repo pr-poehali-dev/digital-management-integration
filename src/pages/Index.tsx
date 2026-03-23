@@ -3,15 +3,15 @@ import Icon from "@/components/ui/icon";
 
 // ─── ТИПЫ ─────────────────────────────────────────────────────────────────────
 type SignalLevel = "ok" | "warn" | "crit";
-type DashboardId = "monitoring" | "tk";
+type DashboardId = "monitoring" | "tk" | "finance";
+type FinanceSection = "holding" | "mkd" | "tc";
 
-// ─── ДАННЫЕ: МОНИТОРИНГ СТРОЙКИ ───────────────────────────────────────────────
+// ─── ДАННЫЕ: МОНИТОРИНГ СТРОЙКИ (МКД) ────────────────────────────────────────
 const PROJECTS = [
   { id: 1, name: "ЖК «Северный парк»", address: "ул. Лесная, 12", stage: "Монолит — 14 эт.", manager: "Карпов А.В." },
   { id: 2, name: "ЖК «Речной квартал»", address: "пр. Набережный, 5", stage: "Фасад — секц. Б", manager: "Никитина О.С." },
   { id: 3, name: "БЦ «Орион»", address: "ул. Промышленная, 3", stage: "Инженерия — 4 эт.", manager: "Власов Д.Е." },
 ];
-
 interface Signal {
   id: number; project: string; block: "стройка" | "финансы" | "продажи";
   text: string; level: SignalLevel; time: string; responsible: string;
@@ -35,34 +35,87 @@ const PROGRESS = [
   { project: "БЦ «Орион»", plan: 55, fact: 54, cost_plan: 3200, cost_fact: 3190, sales_plan: 40, sales_fact: 28 },
 ];
 
-// ─── ДАННЫЕ: УПРАВЛЯЕМОСТЬ ТК ─────────────────────────────────────────────────
-interface Carrier {
-  id: number; name: string; type: string; region: string;
-  trips_plan: number; trips_fact: number;
-  fuel_plan: number; fuel_fact: number;
-  drivers_total: number; drivers_active: number;
-  violations: number; rating: number;
+// ─── ДАННЫЕ: УПРАВЛЯЕМОСТЬ ТК (ТОРГОВЫЕ КОМПЛЕКСЫ) ───────────────────────────
+interface TradingCenter {
+  id: number; name: string; address: string; area: number; openYear: number;
+  occupancy_plan: number; occupancy_fact: number;
+  revenue_plan: number; revenue_fact: number;
+  traffic_plan: number; traffic_fact: number;
+  arrears: number; incidents: number;
 }
-const CARRIERS: Carrier[] = [
-  { id: 1, name: "ТК «ЛогиСтрой»", type: "Бетоновозы", region: "Москва", trips_plan: 120, trips_fact: 108, fuel_plan: 8400, fuel_fact: 9120, drivers_total: 18, drivers_active: 15, violations: 3, rating: 4.2 },
-  { id: 2, name: "ТК «СевТранс»", type: "Самосвалы", region: "Москва", trips_plan: 95, trips_fact: 94, fuel_plan: 6650, fuel_fact: 6580, drivers_total: 14, drivers_active: 14, violations: 0, rating: 4.8 },
-  { id: 3, name: "ТК «АвтоГрейд»", type: "Кран. техника", region: "СПб", trips_plan: 40, trips_fact: 27, fuel_plan: 4200, fuel_fact: 4950, drivers_total: 8, drivers_active: 5, violations: 5, rating: 3.1 },
-  { id: 4, name: "ТК «ПромВектор»", type: "Бортовые", region: "СПб", trips_plan: 68, trips_fact: 65, fuel_plan: 4760, fuel_fact: 4810, drivers_total: 10, drivers_active: 9, violations: 1, rating: 4.5 },
+const TRADING_CENTERS: TradingCenter[] = [
+  { id: 1, name: "ТЦ «Галактика»", address: "пр. Победы, 15", area: 42000, openYear: 2018, occupancy_plan: 95, occupancy_fact: 91, revenue_plan: 18400, revenue_fact: 17200, traffic_plan: 85000, traffic_fact: 79000, arrears: 1240, incidents: 1 },
+  { id: 2, name: "ТЦ «Меридиан»", address: "ул. Центральная, 3", area: 28500, openYear: 2021, occupancy_plan: 98, occupancy_fact: 98, revenue_plan: 12600, revenue_fact: 13100, traffic_plan: 56000, traffic_fact: 59200, arrears: 0, incidents: 0 },
+  { id: 3, name: "ТЦ «Атриум Парк»", address: "шоссе Северное, 88", area: 61000, openYear: 2015, occupancy_plan: 92, occupancy_fact: 78, revenue_plan: 24800, revenue_fact: 19100, traffic_plan: 110000, traffic_fact: 87000, arrears: 4380, incidents: 4 },
+  { id: 4, name: "ТЦ «Нордик»", address: "ул. Лесная, 44", area: 18000, openYear: 2023, occupancy_plan: 88, occupancy_fact: 85, revenue_plan: 7200, revenue_fact: 7050, traffic_plan: 32000, traffic_fact: 30500, arrears: 340, incidents: 0 },
+];
+interface TcSignal { id: number; tc: string; text: string; level: SignalLevel; time: string; }
+const TC_SIGNALS: TcSignal[] = [
+  { id: 1, tc: "ТЦ «Атриум Парк»", text: "Заполняемость 78% — критическое снижение ниже порога 80%", level: "crit", time: "09:22" },
+  { id: 2, tc: "ТЦ «Атриум Парк»", text: "Выручка ниже плана на 23% — требуется разбор причин", level: "crit", time: "09:10" },
+  { id: 3, tc: "ТЦ «Атриум Парк»", text: "Дебиторская задолженность 4 380 тыс. — превышен лимит", level: "crit", time: "08:55" },
+  { id: 4, tc: "ТЦ «Галактика»", text: "Заполняемость 91% — незначительное снижение", level: "warn", time: "08:40" },
+  { id: 5, tc: "ТЦ «Нордик»", text: "Трафик 95% от плана — в норме", level: "ok", time: "08:20" },
+  { id: 6, tc: "ТЦ «Меридиан»", text: "Все показатели выше плана — объект лидер", level: "ok", time: "08:00" },
+];
+const TC_METRICS = [
+  { label: "Торговых комплексов", value: "4", sub: "151 500 м²", icon: "Store" },
+  { label: "Средняя заполняемость", value: "88%", sub: "план 93%", icon: "LayoutGrid", level: "warn" as SignalLevel },
+  { label: "Выручка факт", value: "56,4 млн", sub: "план 63 млн · −10,5%", icon: "TrendingDown", level: "crit" as SignalLevel },
+  { label: "Дебиторская задолж.", value: "5,96 млн", sub: "2 объекта с просрочкой", icon: "AlertCircle", level: "warn" as SignalLevel },
 ];
 
-interface TkSignal { id: number; carrier: string; text: string; level: SignalLevel; time: string; }
-const TK_SIGNALS: TkSignal[] = [
-  { id: 1, carrier: "ТК «АвтоГрейд»", text: "Выполнение рейсов 67% — критическое отставание от плана", level: "crit", time: "09:22" },
-  { id: 2, carrier: "ТК «АвтоГрейд»", text: "Перерасход топлива +17,9% от нормы", level: "crit", time: "09:10" },
-  { id: 3, carrier: "ТК «ЛогиСтрой»", text: "3 нарушения ПДД за период — требуется разбор", level: "warn", time: "08:45" },
-  { id: 4, carrier: "ТК «ЛогиСтрой»", text: "Выполнение рейсов 90% — незначительное отставание", level: "warn", time: "08:30" },
-  { id: 5, carrier: "ТК «СевТранс»", text: "Все рейсы выполнены, нарушений нет", level: "ok", time: "08:00" },
+// ─── ДАННЫЕ: ФИНАНСЫ ──────────────────────────────────────────────────────────
+const MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+const CUR_MONTH = 2; // март (0-based)
+
+// Холдинг — сводный
+const HOLDING_MONTHS = {
+  revenue: { plan: [142, 138, 155, 162, 175, 188, 195, 201, 178, 165, 158, 172], fact: [138, 131, 143, null, null, null, null, null, null, null, null, null] },
+  costs:   { plan: [98,  95,  108, 112, 119, 128, 131, 138, 122, 114, 109, 118], fact: [101, 99,  112, null, null, null, null, null, null, null, null, null] },
+  profit:  { plan: [44,  43,  47,  50,  56,  60,  64,  63,  56,  51,  49,  54], fact: [37,  32,  31,  null, null, null, null, null, null, null, null, null] },
+};
+const HOLDING_KPI = [
+  { label: "Выручка YTD", plan: 435, fact: 412, unit: "млн ₽", icon: "TrendingUp" },
+  { label: "Затраты YTD", plan: 301, fact: 312, unit: "млн ₽", icon: "Receipt" },
+  { label: "Прибыль YTD", plan: 134, fact: 100, unit: "млн ₽", icon: "Wallet" },
+  { label: "Маржа", plan: 30.8, fact: 24.3, unit: "%", icon: "Percent" },
 ];
-const TK_METRICS = [
-  { label: "Транспортных компаний", value: "4", sub: "2 региона", icon: "Truck" },
-  { label: "Выполнение рейсов", value: "89%", sub: "план 323 / факт 294", icon: "Route", level: "warn" as SignalLevel },
-  { label: "Критических нарушений", value: "2", sub: "требуют решения", icon: "AlertTriangle", level: "crit" as SignalLevel },
-  { label: "Средний рейтинг ТК", value: "4,2", sub: "из 5.0", icon: "Star", level: "ok" as SignalLevel },
+
+// МКД — стройка
+const MKD_PROJECTS_FIN = [
+  { name: "ЖК «Северный парк»", budget_plan: 2840, budget_fact: 2310, cost_plan: 1840, cost_fact: 1974, sales_plan: 1820, sales_fact: 1420, cash_gap: -280 },
+  { name: "ЖК «Речной квартал»", budget_plan: 3650, budget_fact: 3100, cost_plan: 2100, cost_fact: 2251, sales_plan: 2800, sales_fact: 2210, cash_gap: -120 },
+  { name: "БЦ «Орион»", budget_plan: 5200, budget_fact: 4890, cost_plan: 3200, cost_fact: 3190, sales_plan: 3800, sales_fact: 2410, cash_gap: -680 },
+];
+const MKD_MONTHS = {
+  costs:  { plan: [195, 188, 210, 225, 242, 260, 265, 270, 248, 231, 218, 238], fact: [212, 218, 224, null, null, null, null, null, null, null, null, null] },
+  sales:  { plan: [320, 310, 345, 360, 385, 410, 425, 440, 395, 370, 355, 385], fact: [298, 285, 312, null, null, null, null, null, null, null, null, null] },
+};
+const MKD_KPI = [
+  { label: "Бюджет проектов", plan: 11690, fact: 10300, unit: "млн ₽", icon: "FolderOpen" },
+  { label: "Затраты факт YTD", plan: 654, fact: 654, unit: "млн ₽", icon: "HardHat" },
+  { label: "Поступления YTD", plan: 975, fact: 895, unit: "млн ₽", icon: "ArrowDownCircle" },
+  { label: "Кассовый разрыв", plan: 0, fact: -1080, unit: "млн ₽", icon: "AlertTriangle" },
+];
+
+// ТК — торговые комплексы
+const TC_FIN_OBJECTS = [
+  { name: "ТЦ «Галактика»", rent_plan: 18400, rent_fact: 17200, opex_plan: 4200, opex_fact: 4380, noi_plan: 14200, noi_fact: 12820, occupancy: 91, arrears: 1240 },
+  { name: "ТЦ «Меридиан»", rent_plan: 12600, rent_fact: 13100, opex_plan: 2800, opex_fact: 2720, noi_plan: 9800, noi_fact: 10380, occupancy: 98, arrears: 0 },
+  { name: "ТЦ «Атриум Парк»", rent_plan: 24800, rent_fact: 19100, opex_plan: 6100, opex_fact: 6450, noi_plan: 18700, noi_fact: 12650, occupancy: 78, arrears: 4380 },
+  { name: "ТЦ «Нордик»", rent_plan: 7200, rent_fact: 7050, opex_plan: 1850, opex_fact: 1890, noi_plan: 5350, noi_fact: 5160, occupancy: 85, arrears: 340 },
+];
+const TC_FIN_MONTHS = {
+  rent:   { plan: [62, 60, 63, 65, 68, 71, 72, 73, 65, 63, 60, 64], fact: [59, 56, 56, null, null, null, null, null, null, null, null, null] },
+  opex:   { plan: [14, 14, 15, 15, 16, 17, 17, 17, 15, 15, 14, 15], fact: [15, 15, 16, null, null, null, null, null, null, null, null, null] },
+  noi:    { plan: [48, 46, 48, 50, 52, 54, 55, 56, 50, 48, 46, 49], fact: [44, 41, 40, null, null, null, null, null, null, null, null, null] },
+};
+const TC_FIN_KPI = [
+  { label: "Арендная выручка YTD", plan: 185, fact: 171, unit: "млн ₽", icon: "Store" },
+  { label: "OPEX YTD", plan: 43, fact: 46, unit: "млн ₽", icon: "Settings" },
+  { label: "NOI YTD", plan: 142, fact: 125, unit: "млн ₽", icon: "TrendingUp" },
+  { label: "Дебиторская задолж.", plan: 0, fact: 5960, unit: "тыс. ₽", icon: "AlertCircle" },
 ];
 
 // ─── ВСПОМОГАТЕЛЬНЫЕ ─────────────────────────────────────────────────────────
@@ -77,6 +130,19 @@ function levelLabel(level: SignalLevel) {
   if (level === "crit") return "Критично";
   if (level === "warn") return "Внимание";
   return "Норма";
+}
+function deltaLevel(plan: number, fact: number, higherIsBetter = true): SignalLevel {
+  const ratio = fact / plan;
+  if (higherIsBetter) return ratio < 0.85 ? "crit" : ratio < 0.95 ? "warn" : "ok";
+  return ratio > 1.1 ? "crit" : ratio > 1.04 ? "warn" : "ok";
+}
+function fmt(v: number | null, decimals = 0) {
+  if (v === null) return "—";
+  return v.toLocaleString("ru", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function deltaPct(plan: number, fact: number) {
+  const d = ((fact - plan) / plan) * 100;
+  return (d >= 0 ? "+" : "") + d.toFixed(1) + "%";
 }
 
 function ProgressBar({ value, max = 100, level }: { value: number; max?: number; level: SignalLevel }) {
@@ -100,6 +166,136 @@ function RatingDots({ value }: { value: number }) {
   );
 }
 
+// Мини-спарклайн (SVG)
+function Sparkline({ planData, factData, height = 40 }: { planData: (number | null)[]; factData: (number | null)[]; height?: number }) {
+  const width = 220;
+  const pad = 4;
+  const allVals = [...planData, ...factData].filter(v => v !== null) as number[];
+  if (allVals.length === 0) return null;
+  const min = Math.min(...allVals) * 0.92;
+  const max = Math.max(...allVals) * 1.04;
+  const range = max - min || 1;
+  const pts = planData.length;
+  const xStep = (width - pad * 2) / (pts - 1);
+  const y = (v: number) => pad + ((max - v) / range) * (height - pad * 2);
+  const planPts = planData.map((v, i) => v !== null ? `${pad + i * xStep},${y(v)}` : null).filter(Boolean).join(" ");
+  const factPts = factData.map((v, i) => v !== null ? `${pad + i * xStep},${y(v as number)}` : null).filter(Boolean).join(" ");
+  const curX = pad + CUR_MONTH * xStep;
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline points={planPts} fill="none" stroke="hsl(var(--muted-foreground))" strokeWidth="1" strokeDasharray="3,2" opacity="0.5" />
+      <polyline points={factPts} fill="none" stroke="hsl(214,80%,56%)" strokeWidth="1.5" />
+      <line x1={curX} y1={pad} x2={curX} y2={height - pad} stroke="hsl(var(--border))" strokeWidth="1" strokeDasharray="2,2" />
+    </svg>
+  );
+}
+
+// KPI карточка
+function KpiCard({ label, plan, fact, unit, icon, delay = 0 }: { label: string; plan: number; fact: number; unit: string; icon: string; delay?: number }) {
+  const lvl = deltaLevel(plan, fact, unit !== "%" || fact >= 0 ? true : false);
+  const cls = levelClass(lvl);
+  const isNegative = fact < 0;
+  return (
+    <div className={`bg-card border rounded p-4 flex items-start gap-3 animate-fade-in ${cls.border} border-l-2`}
+      style={{ animationDelay: `${delay}ms`, opacity: 0 }}>
+      <div className={`w-9 h-9 rounded flex items-center justify-center shrink-0 ${cls.bg}`}>
+        <Icon name={icon} size={18} className={cls.text} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-end gap-2 flex-wrap">
+          <span className={`text-2xl font-bold leading-none ${isNegative ? "status-crit" : cls.text}`}>
+            {isNegative ? "−" : ""}{fmt(Math.abs(fact), unit === "%" ? 1 : 0)}
+          </span>
+          <span className="text-[11px] text-muted-foreground mb-0.5">{unit}</span>
+        </div>
+        <p className="text-[11px] font-medium text-foreground mt-1 truncate">{label}</p>
+        {plan > 0 && (
+          <p className={`text-[10px] mt-0.5 font-medium ${lvl === "ok" ? "status-ok" : lvl === "warn" ? "status-warn" : "status-crit"}`}>
+            {deltaPct(plan, fact)} к плану · пл. {fmt(plan, unit === "%" ? 1 : 0)} {unit}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Строка таблицы план/факт
+function PfRow({ label, plan, fact, unit = "млн ₽", higherIsBetter = true, indent = false }: {
+  label: string; plan: number; fact: number; unit?: string; higherIsBetter?: boolean; indent?: boolean;
+}) {
+  const lvl = deltaLevel(plan, fact, higherIsBetter);
+  const cls = levelClass(lvl);
+  const diff = fact - plan;
+  return (
+    <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+      <td className={`px-5 py-2.5 text-xs text-foreground ${indent ? "pl-10" : ""}`}>{label}</td>
+      <td className="px-5 py-2.5 text-xs font-mono text-right text-muted-foreground">{fmt(plan)} {unit}</td>
+      <td className="px-5 py-2.5 text-xs font-mono text-right">
+        <span className={cls.text}>{fmt(fact)} {unit}</span>
+      </td>
+      <td className="px-5 py-2.5 text-xs font-mono text-right">
+        <span className={`${cls.text} font-semibold`}>{deltaPct(plan, fact)}</span>
+      </td>
+      <td className="px-5 py-2.5 text-xs font-mono text-right">
+        <span className={diff >= 0 ? (higherIsBetter ? "status-ok" : "status-crit") : (higherIsBetter ? "status-crit" : "status-ok")}>
+          {diff >= 0 ? "+" : ""}{fmt(diff)} {unit}
+        </span>
+      </td>
+      <td className="px-4 py-2.5">
+        <div className={`w-2 h-2 rounded-full ${cls.dot} ${lvl !== "ok" ? "animate-pulse" : ""}`} />
+      </td>
+    </tr>
+  );
+}
+
+// Мини-chart блок
+function MonthChart({ title, planData, factData, unit = "млн ₽" }: {
+  title: string; planData: (number | null)[]; factData: (number | null)[]; unit?: string;
+}) {
+  const maxPlan = Math.max(...(planData.filter(v => v !== null) as number[]));
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-medium text-foreground">{title}</span>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="inline-block w-5 border-t border-dashed border-muted-foreground" />план</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 border-t-2 border-blue-500" />факт</span>
+        </div>
+      </div>
+      <div className="flex items-end gap-0.5" style={{ height: 56 }}>
+        {MONTHS.map((m, i) => {
+          const p = planData[i];
+          const f = factData[i];
+          const isFuture = f === null;
+          const pH = p !== null ? (p / maxPlan) * 46 : 0;
+          const fH = f !== null ? (f / maxPlan) * 46 : 0;
+          const fLvl: SignalLevel = f !== null && p !== null ? deltaLevel(p, f) : "ok";
+          const barColor = { ok: "#22c55e", warn: "#f59e0b", crit: "#ef4444" }[fLvl];
+          return (
+            <div key={m} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+              <div className="flex items-end gap-px w-full justify-center" style={{ height: 46 }}>
+                <div className="w-2/5 rounded-t-sm opacity-25 bg-muted-foreground" style={{ height: pH }} />
+                {!isFuture ? (
+                  <div className="w-2/5 rounded-t-sm" style={{ height: fH, background: barColor }} />
+                ) : (
+                  <div className="w-2/5 rounded-t-sm bg-muted/40" style={{ height: pH }} />
+                )}
+              </div>
+              <span className={`text-[8px] ${i === CUR_MONTH ? "text-foreground font-bold" : "text-muted-foreground"}`}>{m}</span>
+              {!isFuture && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-popover border border-border rounded px-2 py-1 text-[10px] whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                  <div className="text-muted-foreground">п: {fmt(p as number)} {unit}</div>
+                  <div className={levelClass(fLvl).text}>ф: {fmt(f as number)} {unit}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── ДАШБОРД 1: МОНИТОРИНГ СТРОЙКИ ───────────────────────────────────────────
 function MonitoringDashboard() {
   const [activeProject, setActiveProject] = useState<number | null>(null);
@@ -107,23 +303,22 @@ function MonitoringDashboard() {
   const [dismissedSignals, setDismissedSignals] = useState<number[]>([]);
 
   const filteredSignals = SIGNALS.filter(
-    (s) =>
-      !dismissedSignals.includes(s.id) &&
-      (activeProject === null || s.project === PROJECTS.find((p) => p.id === activeProject)?.name) &&
-      (activeBlock === null || s.block === activeBlock)
+    s => !dismissedSignals.includes(s.id) &&
+    (activeProject === null || s.project === PROJECTS.find(p => p.id === activeProject)?.name) &&
+    (activeBlock === null || s.block === activeBlock)
   );
   const filteredProgress = PROGRESS.filter(
-    (p) => activeProject === null || p.project === PROJECTS.find((pr) => pr.id === activeProject)?.name
+    p => activeProject === null || p.project === PROJECTS.find(pr => pr.id === activeProject)?.name
   );
 
   return (
     <div className="px-8 py-6 space-y-6">
-      {/* KPI */}
       <div className="grid grid-cols-4 gap-4">
         {METRICS.map((m, i) => {
           const cls = m.level ? levelClass(m.level) : null;
           return (
-            <div key={i} className={`bg-card border rounded p-4 flex items-start gap-3 animate-fade-in ${cls ? `${cls.border} border-l-2` : "border-border"}`} style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}>
+            <div key={i} className={`bg-card border rounded p-4 flex items-start gap-3 animate-fade-in ${cls ? `${cls.border} border-l-2` : "border-border"}`}
+              style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}>
               <div className={`w-9 h-9 rounded flex items-center justify-center shrink-0 ${cls ? cls.bg : "bg-muted"}`}>
                 <Icon name={m.icon} size={18} className={cls ? cls.text : "text-muted-foreground"} />
               </div>
@@ -139,10 +334,9 @@ function MonitoringDashboard() {
 
       <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 340px" }}>
         <div className="space-y-5">
-          {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">Объект:</span>
-            {[{ id: null, name: "Все" }, ...PROJECTS.map(p => ({ id: p.id, name: p.name }))].map((opt) => (
+            {[{ id: null, name: "Все" }, ...PROJECTS.map(p => ({ id: p.id, name: p.name }))].map(opt => (
               <button key={opt.id ?? "all"} onClick={() => setActiveProject(opt.id as number | null)}
                 className="text-xs px-3 py-1 rounded border transition-colors"
                 style={activeProject === opt.id ? { background: "hsl(220, 55%, 22%)", color: "#fff", borderColor: "hsl(220, 55%, 22%)" } : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}>
@@ -151,7 +345,6 @@ function MonitoringDashboard() {
             ))}
           </div>
 
-          {/* Progress */}
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Прогресс строительства</h2>
@@ -201,7 +394,6 @@ function MonitoringDashboard() {
             </div>
           </div>
 
-          {/* Objects table */}
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border">
               <h2 className="text-sm font-semibold text-foreground">Объекты</h2>
@@ -209,13 +401,13 @@ function MonitoringDashboard() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  {["Название", "Адрес", "Стадия", "ГИП"].map((h) => (
+                  {["Название", "Адрес", "Стадия", "ГИП"].map(h => (
                     <th key={h} className="text-left px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {PROJECTS.map((p) => (
+                {PROJECTS.map(p => (
                   <tr key={p.id} onClick={() => setActiveProject(activeProject === p.id ? null : p.id)}
                     className="cursor-pointer transition-colors hover:bg-muted/50"
                     style={activeProject === p.id ? { background: "hsl(220, 55%, 22%, 0.05)" } : {}}>
@@ -230,13 +422,12 @@ function MonitoringDashboard() {
           </div>
         </div>
 
-        {/* Right — Signals */}
         <div className="space-y-4">
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Сигналы отклонений</h2>
               <div className="flex gap-1">
-                {["все", "стройка", "финансы", "продажи"].map((b) => (
+                {["все", "стройка", "финансы", "продажи"].map(b => (
                   <button key={b} onClick={() => setActiveBlock(b === "все" ? null : b)}
                     className="text-[10px] px-2 py-0.5 rounded transition-colors"
                     style={(b === "все" && activeBlock === null) || activeBlock === b
@@ -271,7 +462,7 @@ function MonitoringDashboard() {
                           </div>
                         </div>
                       </div>
-                      <button onClick={() => setDismissedSignals((prev) => [...prev, s.id])}
+                      <button onClick={() => setDismissedSignals(prev => [...prev, s.id])}
                         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5">
                         <Icon name="X" size={13} />
                       </button>
@@ -289,23 +480,23 @@ function MonitoringDashboard() {
 
 // ─── ДАШБОРД 2: УПРАВЛЯЕМОСТЬ ТК ─────────────────────────────────────────────
 function TkDashboard() {
-  const [activeCarrier, setActiveCarrier] = useState<number | null>(null);
+  const [activeTc, setActiveTc] = useState<number | null>(null);
   const [dismissedTk, setDismissedTk] = useState<number[]>([]);
 
-  const filteredSignals = TK_SIGNALS.filter(
+  const filteredSignals = TC_SIGNALS.filter(
     s => !dismissedTk.includes(s.id) &&
-    (activeCarrier === null || s.carrier === CARRIERS.find(c => c.id === activeCarrier)?.name)
+    (activeTc === null || s.tc === TRADING_CENTERS.find(c => c.id === activeTc)?.name)
   );
-  const filteredCarriers = activeCarrier === null ? CARRIERS : CARRIERS.filter(c => c.id === activeCarrier);
+  const filteredTc = activeTc === null ? TRADING_CENTERS : TRADING_CENTERS.filter(c => c.id === activeTc);
 
   return (
     <div className="px-8 py-6 space-y-6">
-      {/* KPI */}
       <div className="grid grid-cols-4 gap-4">
-        {TK_METRICS.map((m, i) => {
+        {TC_METRICS.map((m, i) => {
           const cls = m.level ? levelClass(m.level) : null;
           return (
-            <div key={i} className={`bg-card border rounded p-4 flex items-start gap-3 animate-fade-in ${cls ? `${cls.border} border-l-2` : "border-border"}`} style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}>
+            <div key={i} className={`bg-card border rounded p-4 flex items-start gap-3 animate-fade-in ${cls ? `${cls.border} border-l-2` : "border-border"}`}
+              style={{ animationDelay: `${i * 60}ms`, opacity: 0 }}>
               <div className={`w-9 h-9 rounded flex items-center justify-center shrink-0 ${cls ? cls.bg : "bg-muted"}`}>
                 <Icon name={m.icon} size={18} className={cls ? cls.text : "text-muted-foreground"} />
               </div>
@@ -321,41 +512,39 @@ function TkDashboard() {
 
       <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 340px" }}>
         <div className="space-y-5">
-          {/* Carrier filter */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">ТК:</span>
-            {[{ id: null, name: "Все" }, ...CARRIERS.map(c => ({ id: c.id, name: c.name }))].map((opt) => (
-              <button key={opt.id ?? "all"} onClick={() => setActiveCarrier(opt.id as number | null)}
+            {[{ id: null, name: "Все" }, ...TRADING_CENTERS.map(c => ({ id: c.id, name: c.name }))].map(opt => (
+              <button key={opt.id ?? "all"} onClick={() => setActiveTc(opt.id as number | null)}
                 className="text-xs px-3 py-1 rounded border transition-colors"
-                style={activeCarrier === opt.id ? { background: "hsl(220, 55%, 22%)", color: "#fff", borderColor: "hsl(220, 55%, 22%)" } : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}>
+                style={activeTc === opt.id ? { background: "hsl(220, 55%, 22%)", color: "#fff", borderColor: "hsl(220, 55%, 22%)" } : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}>
                 {opt.name}
               </button>
             ))}
           </div>
 
-          {/* Carrier cards */}
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Показатели транспортных компаний</h2>
+              <h2 className="text-sm font-semibold text-foreground">Ключевые показатели ТК</h2>
               <span className="text-[11px] text-muted-foreground">план / факт</span>
             </div>
             <div className="divide-y divide-border">
-              {filteredCarriers.map((c, i) => {
-                const tripLevel: SignalLevel = c.trips_fact / c.trips_plan < 0.75 ? "crit" : c.trips_fact / c.trips_plan < 0.9 ? "warn" : "ok";
-                const fuelLevel: SignalLevel = c.fuel_fact / c.fuel_plan > 1.1 ? "crit" : c.fuel_fact / c.fuel_plan > 1.04 ? "warn" : "ok";
-                const driverLevel: SignalLevel = c.drivers_active / c.drivers_total < 0.7 ? "crit" : c.drivers_active / c.drivers_total < 0.85 ? "warn" : "ok";
-                const overallLevel: SignalLevel = [tripLevel, fuelLevel, driverLevel].includes("crit") ? "crit" : [tripLevel, fuelLevel, driverLevel].includes("warn") ? "warn" : "ok";
+              {filteredTc.map((c, i) => {
+                const occLevel = deltaLevel(c.occupancy_plan, c.occupancy_fact);
+                const revLevel = deltaLevel(c.revenue_plan, c.revenue_fact);
+                const trafLevel = deltaLevel(c.traffic_plan, c.traffic_fact);
+                const overallLevel: SignalLevel = [occLevel, revLevel].includes("crit") ? "crit" : [occLevel, revLevel].includes("warn") ? "warn" : "ok";
                 return (
                   <div key={c.id} className="px-5 py-4 animate-fade-in" style={{ animationDelay: `${i * 80}ms`, opacity: 0 }}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-sm font-medium text-foreground">{c.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{c.type} · {c.region}</p>
+                        <p className="text-[11px] text-muted-foreground">{c.address} · {c.area.toLocaleString("ru")} м² · с {c.openYear} г.</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {c.violations > 0 && (
+                        {c.arrears > 0 && (
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-status-warn status-warn">
-                            {c.violations} нар.
+                            деб. {(c.arrears / 1000).toFixed(1)} млн
                           </span>
                         )}
                         <div className={`flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${overallLevel === "crit" ? "bg-status-crit status-crit" : overallLevel === "warn" ? "bg-status-warn status-warn" : "bg-status-ok status-ok"}`}>
@@ -364,45 +553,29 @@ function TkDashboard() {
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      {/* Рейсы */}
+                    <div className="grid grid-cols-3 gap-5">
                       <div>
                         <div className="flex justify-between mb-1.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Рейсы</span>
-                          <span className="text-[11px] font-mono">
-                            <span className={levelClass(tripLevel).text}>{c.trips_fact}</span>
-                            <span className="text-muted-foreground"> / {c.trips_plan}</span>
-                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Заполняемость</span>
+                          <span className="text-[11px] font-mono"><span className={levelClass(occLevel).text}>{c.occupancy_fact}%</span><span className="text-muted-foreground"> / {c.occupancy_plan}%</span></span>
                         </div>
-                        <ProgressBar value={c.trips_fact} max={c.trips_plan} level={tripLevel} />
-                        <p className="text-[10px] text-muted-foreground mt-1">{Math.round(c.trips_fact / c.trips_plan * 100)}% от плана</p>
+                        <ProgressBar value={c.occupancy_fact} level={occLevel} />
                       </div>
-                      {/* Топливо */}
                       <div>
                         <div className="flex justify-between mb-1.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Топливо</span>
-                          <span className={`text-[11px] font-mono ${levelClass(fuelLevel).text}`}>{c.fuel_fact.toLocaleString("ru")} л</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Выручка, тыс. ₽</span>
+                          <span className={`text-[11px] font-mono ${levelClass(revLevel).text}`}>{c.revenue_fact.toLocaleString("ru")}</span>
                         </div>
-                        <ProgressBar value={c.fuel_fact} max={c.fuel_plan * 1.2} level={fuelLevel} />
-                        <p className="text-[10px] text-muted-foreground mt-1">план {c.fuel_plan.toLocaleString("ru")} л</p>
+                        <ProgressBar value={c.revenue_fact} max={c.revenue_plan * 1.1} level={revLevel} />
+                        <p className="text-[10px] text-muted-foreground mt-1">план {c.revenue_plan.toLocaleString("ru")} тыс.</p>
                       </div>
-                      {/* Водители */}
                       <div>
                         <div className="flex justify-between mb-1.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Водители</span>
-                          <span className="text-[11px] font-mono">
-                            <span className={levelClass(driverLevel).text}>{c.drivers_active}</span>
-                            <span className="text-muted-foreground"> / {c.drivers_total}</span>
-                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Трафик, чел.</span>
+                          <span className="text-[11px] font-mono"><span className={levelClass(trafLevel).text}>{c.traffic_fact.toLocaleString("ru")}</span></span>
                         </div>
-                        <ProgressBar value={c.drivers_active} max={c.drivers_total} level={driverLevel} />
-                        <p className="text-[10px] text-muted-foreground mt-1">активных на линии</p>
-                      </div>
-                      {/* Рейтинг */}
-                      <div>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-2">Рейтинг</span>
-                        <RatingDots value={c.rating} />
-                        <p className="text-[10px] text-muted-foreground mt-1.5">надёжность ТК</p>
+                        <ProgressBar value={c.traffic_fact} max={c.traffic_plan} level={trafLevel} />
+                        <p className="text-[10px] text-muted-foreground mt-1">план {c.traffic_plan.toLocaleString("ru")}</p>
                       </div>
                     </div>
                   </div>
@@ -411,39 +584,44 @@ function TkDashboard() {
             </div>
           </div>
 
-          {/* Carriers table */}
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Список ТК</h2>
+              <h2 className="text-sm font-semibold text-foreground">Список торговых комплексов</h2>
             </div>
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  {["Компания", "Тип техники", "Регион", "Рейсы ф/п", "Нарушения", "Рейтинг"].map((h) => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
+                  {["Объект", "Адрес", "Площадь", "Заполн.", "Выручка ф/п", "Дебит.", "Инц."].map(h => (
+                    <th key={h} className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {CARRIERS.map((c) => {
-                  const tripLevel: SignalLevel = c.trips_fact / c.trips_plan < 0.75 ? "crit" : c.trips_fact / c.trips_plan < 0.9 ? "warn" : "ok";
+                {TRADING_CENTERS.map(c => {
+                  const occLevel = deltaLevel(c.occupancy_plan, c.occupancy_fact);
+                  const revLevel = deltaLevel(c.revenue_plan, c.revenue_fact);
                   return (
-                    <tr key={c.id} onClick={() => setActiveCarrier(activeCarrier === c.id ? null : c.id)}
+                    <tr key={c.id} onClick={() => setActiveTc(activeTc === c.id ? null : c.id)}
                       className="cursor-pointer transition-colors hover:bg-muted/50"
-                      style={activeCarrier === c.id ? { background: "hsl(220, 55%, 22%, 0.05)" } : {}}>
-                      <td className="px-5 py-3 font-medium text-foreground">{c.name}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{c.type}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{c.region}</td>
-                      <td className="px-5 py-3 font-mono">
-                        <span className={levelClass(tripLevel).text}>{c.trips_fact}</span>
-                        <span className="text-muted-foreground"> / {c.trips_plan}</span>
+                      style={activeTc === c.id ? { background: "hsl(220, 55%, 22%, 0.05)" } : {}}>
+                      <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-[11px]">{c.address}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono">{c.area.toLocaleString("ru")} м²</td>
+                      <td className="px-4 py-3 font-mono"><span className={levelClass(occLevel).text}>{c.occupancy_fact}%</span></td>
+                      <td className="px-4 py-3 font-mono">
+                        <span className={levelClass(revLevel).text}>{c.revenue_fact.toLocaleString("ru")}</span>
+                        <span className="text-muted-foreground"> / {c.revenue_plan.toLocaleString("ru")}</span>
                       </td>
-                      <td className="px-5 py-3">
-                        {c.violations > 0
-                          ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-status-warn status-warn">{c.violations}</span>
+                      <td className="px-4 py-3">
+                        {c.arrears > 0
+                          ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-status-warn status-warn">{(c.arrears / 1000).toFixed(1)} млн</span>
                           : <span className="text-[10px] status-ok">—</span>}
                       </td>
-                      <td className="px-5 py-3"><RatingDots value={c.rating} /></td>
+                      <td className="px-4 py-3">
+                        {c.incidents > 0
+                          ? <span className="text-[10px] font-semibold status-crit">{c.incidents}</span>
+                          : <span className="text-[10px] text-muted-foreground">—</span>}
+                      </td>
                     </tr>
                   );
                 })}
@@ -452,7 +630,6 @@ function TkDashboard() {
           </div>
         </div>
 
-        {/* Right — TK Signals */}
         <div>
           <div className="bg-card border border-border rounded overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -476,7 +653,7 @@ function TkDashboard() {
                         <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${s.level !== "ok" ? "animate-pulse" : ""} ${cls.dot}`} />
                         <div className="min-w-0">
                           <p className="text-[11px] font-medium text-foreground leading-snug">{s.text}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{s.carrier} · {s.time}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{s.tc} · {s.time}</p>
                           <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-sm font-medium mt-1 ${cls.bg} ${cls.text}`}>{levelLabel(s.level)}</span>
                         </div>
                       </div>
@@ -496,10 +673,466 @@ function TkDashboard() {
   );
 }
 
+// ─── ДАШБОРД 3: ФИНАНСЫ ───────────────────────────────────────────────────────
+function FinanceDashboard() {
+  const [section, setSection] = useState<FinanceSection>("holding");
+
+  const SECTIONS: { id: FinanceSection; label: string; icon: string }[] = [
+    { id: "holding", label: "Холдинг (сводно)", icon: "LayoutDashboard" },
+    { id: "mkd", label: "МКД / Стройка", icon: "Building2" },
+    { id: "tc", label: "Торговые комплексы", icon: "Store" },
+  ];
+
+  return (
+    <div className="px-8 py-6 space-y-6">
+      {/* Section tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-4">
+        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mr-2">Раздел:</span>
+        {SECTIONS.map(s => (
+          <button key={s.id} onClick={() => setSection(s.id)}
+            className="flex items-center gap-2 px-4 py-1.5 rounded text-xs font-medium transition-all"
+            style={section === s.id
+              ? { background: "hsl(220, 55%, 22%)", color: "#fff" }
+              : { background: "transparent", color: "hsl(var(--muted-foreground))", border: "1px solid hsl(var(--border))" }}>
+            <Icon name={s.icon} size={13} />
+            {s.label}
+          </button>
+        ))}
+        <div className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Icon name="Calendar" size={13} />
+          Январь — Март 2026 · YTD
+        </div>
+      </div>
+
+      {/* ── ХОЛДИНГ ── */}
+      {section === "holding" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-4 gap-4">
+            {HOLDING_KPI.map((k, i) => <KpiCard key={i} {...k} delay={i * 60} />)}
+          </div>
+
+          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 320px" }}>
+            <div className="space-y-5">
+              {/* P&L таблица */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">P&L — план / факт YTD</h2>
+                  <span className="text-[11px] text-muted-foreground font-mono">млн ₽</span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Статья</th>
+                      <th className="text-right px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">План</th>
+                      <th className="text-right px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Факт</th>
+                      <th className="text-right px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">% к плану</th>
+                      <th className="text-right px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Откл.</th>
+                      <th className="px-4 py-2.5 w-8" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <PfRow label="Выручка — МКД" plan={250} fact={224} />
+                    <PfRow label="Выручка — ТК" plan={185} fact={171} indent />
+                    <PfRow label="Прочие доходы" plan={0} fact={17} higherIsBetter />
+                    <tr className="border-b border-border bg-muted/20">
+                      <td className="px-5 py-2.5 text-xs font-semibold text-foreground">Итого выручка</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold text-muted-foreground">435 млн ₽</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-warn">412 млн ₽</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-warn">−5,3%</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-crit">−23 млн ₽</td>
+                      <td />
+                    </tr>
+                    <PfRow label="Затраты — МКД" plan={230} fact={246} higherIsBetter={false} />
+                    <PfRow label="Затраты — ТК" plan={43} fact={46} higherIsBetter={false} indent />
+                    <PfRow label="Общехол. расходы" plan={28} fact={20} higherIsBetter={false} />
+                    <tr className="border-b border-border bg-muted/20">
+                      <td className="px-5 py-2.5 text-xs font-semibold text-foreground">Итого затраты</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold text-muted-foreground">301 млн ₽</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-crit">312 млн ₽</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-crit">+3,7%</td>
+                      <td className="px-5 py-2.5 text-xs font-mono text-right font-semibold status-crit">+11 млн ₽</td>
+                      <td />
+                    </tr>
+                    <tr className="bg-muted/10">
+                      <td className="px-5 py-3 text-sm font-bold text-foreground">Прибыль</td>
+                      <td className="px-5 py-3 text-sm font-mono text-right font-bold text-muted-foreground">134 млн ₽</td>
+                      <td className="px-5 py-3 text-sm font-mono text-right font-bold status-crit">100 млн ₽</td>
+                      <td className="px-5 py-3 text-sm font-mono text-right font-bold status-crit">−25,4%</td>
+                      <td className="px-5 py-3 text-sm font-mono text-right font-bold status-crit">−34 млн ₽</td>
+                      <td />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Charts */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Динамика по месяцам</h2>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-3 gap-6">
+                  <MonthChart title="Выручка, млн ₽" planData={HOLDING_MONTHS.revenue.plan} factData={HOLDING_MONTHS.revenue.fact} />
+                  <MonthChart title="Затраты, млн ₽" planData={HOLDING_MONTHS.costs.plan} factData={HOLDING_MONTHS.costs.fact} />
+                  <MonthChart title="Прибыль, млн ₽" planData={HOLDING_MONTHS.profit.plan} factData={HOLDING_MONTHS.profit.fact} />
+                </div>
+              </div>
+            </div>
+
+            {/* Отклонения */}
+            <div className="space-y-4">
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Ключевые отклонения</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {[
+                    { text: "Выручка МКД ниже плана на 26 млн ₽ — низкий темп продаж в 2 проектах", level: "crit" as SignalLevel, tag: "МКД" },
+                    { text: "Выручка ТЦ «Атриум Парк» ниже плана на 23% — снижение заполняемости", level: "crit" as SignalLevel, tag: "ТК" },
+                    { text: "Затраты МКД превышают план на 16 млн ₽ — удорожание материалов", level: "warn" as SignalLevel, tag: "МКД" },
+                    { text: "Дебиторская задолженность ТК: 5,96 млн ₽ — 2 арендатора", level: "warn" as SignalLevel, tag: "ТК" },
+                    { text: "Маржа холдинга 24,3% vs план 30,8% — требует решения", level: "crit" as SignalLevel, tag: "Холдинг" },
+                    { text: "Общехолдинговые расходы ниже плана на 8 млн ₽ — экономия", level: "ok" as SignalLevel, tag: "Холдинг" },
+                    { text: "ТЦ «Меридиан» — выручка выше плана на 3,9%", level: "ok" as SignalLevel, tag: "ТК" },
+                  ].map((d, i) => {
+                    const cls = levelClass(d.level);
+                    return (
+                      <div key={i} className={`px-4 py-3 border-l-2 ${cls.border}`}>
+                        <div className="flex items-start gap-2">
+                          <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${d.level !== "ok" ? "animate-pulse" : ""} ${cls.dot}`} />
+                          <div>
+                            <p className="text-[11px] text-foreground leading-snug">{d.text}</p>
+                            <div className="flex gap-1.5 mt-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${cls.bg} ${cls.text}`}>{levelLabel(d.level)}</span>
+                              <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded-sm border border-border">{d.tag}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── МКД ── */}
+      {section === "mkd" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-4 gap-4">
+            {MKD_KPI.map((k, i) => <KpiCard key={i} {...k} delay={i * 60} />)}
+          </div>
+
+          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 320px" }}>
+            <div className="space-y-5">
+              {/* По объектам */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Финансы по объектам МКД</h2>
+                  <span className="text-[11px] text-muted-foreground font-mono">млн ₽</span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      {["Объект", "Бюджет (п/ф)", "Затраты (п/ф)", "Поступления (п/ф)", "Кассовый разрыв", ""].map(h => (
+                        <th key={h} className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {MKD_PROJECTS_FIN.map((p, i) => {
+                      const budgetLvl = deltaLevel(p.budget_plan, p.budget_fact);
+                      const costLvl = deltaLevel(p.cost_plan, p.cost_fact, false);
+                      const salesLvl = deltaLevel(p.sales_plan, p.sales_fact);
+                      const gapLvl: SignalLevel = p.cash_gap < -500 ? "crit" : p.cash_gap < -100 ? "warn" : "ok";
+                      return (
+                        <tr key={i} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 text-xs font-medium text-foreground">{p.name}</td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(budgetLvl).text}>{fmt(p.budget_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(p.budget_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(costLvl).text}>{fmt(p.cost_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(p.cost_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(salesLvl).text}>{fmt(p.sales_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(p.sales_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(gapLvl).text}>{fmt(p.cash_gap)} млн</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className={`w-2 h-2 rounded-full ${levelClass(gapLvl).dot} ${gapLvl !== "ok" ? "animate-pulse" : ""}`} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Динамика */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Динамика затрат и поступлений МКД</h2>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-2 gap-8">
+                  <MonthChart title="Затраты, млн ₽" planData={MKD_MONTHS.costs.plan} factData={MKD_MONTHS.costs.fact} />
+                  <MonthChart title="Поступления от продаж, млн ₽" planData={MKD_MONTHS.sales.plan} factData={MKD_MONTHS.sales.fact} />
+                </div>
+              </div>
+            </div>
+
+            {/* Правая колонка — структура затрат */}
+            <div className="space-y-4">
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Структура затрат YTD</h2>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  {[
+                    { label: "Материалы", plan: 280, fact: 310 },
+                    { label: "Работы подрядчиков", plan: 185, fact: 192 },
+                    { label: "Транспорт и механизм.", plan: 68, fact: 71 },
+                    { label: "Проектирование", plan: 45, fact: 42 },
+                    { label: "Аренда техники", plan: 38, fact: 40 },
+                    { label: "Прочее", plan: 38, fact: 35 },
+                  ].map((row, i) => {
+                    const lvl = deltaLevel(row.plan, row.fact, false);
+                    const cls = levelClass(lvl);
+                    const total = 654;
+                    const pct = Math.round((row.fact / total) * 100);
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] text-foreground">{row.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground">{pct}%</span>
+                            <span className={`text-[11px] font-mono font-medium ${cls.text}`}>{fmt(row.fact)}</span>
+                            <span className="text-[10px] text-muted-foreground">/ {fmt(row.plan)}</span>
+                          </div>
+                        </div>
+                        <ProgressBar value={row.fact} max={row.plan * 1.2} level={lvl} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Кассовые разрывы</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {MKD_PROJECTS_FIN.map((p, i) => {
+                    const gapLvl: SignalLevel = p.cash_gap < -500 ? "crit" : p.cash_gap < -100 ? "warn" : "ok";
+                    const cls = levelClass(gapLvl);
+                    return (
+                      <div key={i} className={`px-4 py-3 border-l-2 ${cls.border}`}>
+                        <p className="text-[11px] font-medium text-foreground">{p.name}</p>
+                        <p className={`text-lg font-bold font-mono mt-0.5 ${cls.text}`}>{fmt(p.cash_gap)} млн ₽</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${cls.bg} ${cls.text}`}>{levelLabel(gapLvl)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ТК ── */}
+      {section === "tc" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-4 gap-4">
+            {TC_FIN_KPI.map((k, i) => <KpiCard key={i} {...k} delay={i * 60} />)}
+          </div>
+
+          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 320px" }}>
+            <div className="space-y-5">
+              {/* Таблица объектов */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Финансы по торговым комплексам</h2>
+                  <span className="text-[11px] text-muted-foreground font-mono">тыс. ₽ / мес.</span>
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      {["ТК", "Аренда (п/ф)", "OPEX (п/ф)", "NOI (п/ф)", "Заполн.", "Дебит.", ""].map(h => (
+                        <th key={h} className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {TC_FIN_OBJECTS.map((tc, i) => {
+                      const rentLvl = deltaLevel(tc.rent_plan, tc.rent_fact);
+                      const opexLvl = deltaLevel(tc.opex_plan, tc.opex_fact, false);
+                      const noiLvl = deltaLevel(tc.noi_plan, tc.noi_fact);
+                      const occLvl = deltaLevel(90, tc.occupancy);
+                      return (
+                        <tr key={i} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 text-xs font-medium text-foreground">{tc.name}</td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(rentLvl).text}>{fmt(tc.rent_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(tc.rent_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(opexLvl).text}>{fmt(tc.opex_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(tc.opex_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(noiLvl).text}>{fmt(tc.noi_fact)}</span>
+                            <span className="text-muted-foreground"> / {fmt(tc.noi_plan)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">
+                            <span className={levelClass(occLvl).text}>{tc.occupancy}%</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            {tc.arrears > 0
+                              ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-status-warn status-warn">{(tc.arrears / 1000).toFixed(1)} млн</span>
+                              : <span className="text-[10px] status-ok">—</span>}
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className={`w-2 h-2 rounded-full ${levelClass(noiLvl).dot} ${noiLvl !== "ok" ? "animate-pulse" : ""}`} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Динамика */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Динамика ТК по месяцам</h2>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-3 gap-6">
+                  <MonthChart title="Аренда, млн ₽" planData={TC_FIN_MONTHS.rent.plan} factData={TC_FIN_MONTHS.rent.fact} />
+                  <MonthChart title="OPEX, млн ₽" planData={TC_FIN_MONTHS.opex.plan} factData={TC_FIN_MONTHS.opex.fact} />
+                  <MonthChart title="NOI, млн ₽" planData={TC_FIN_MONTHS.noi.plan} factData={TC_FIN_MONTHS.noi.fact} />
+                </div>
+              </div>
+
+              {/* NOI сравнение */}
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">NOI — план / факт по объектам</h2>
+                  <span className="text-[11px] text-muted-foreground">тыс. ₽ / мес.</span>
+                </div>
+                <div className="px-5 py-4 space-y-4">
+                  {TC_FIN_OBJECTS.map((tc, i) => {
+                    const lvl = deltaLevel(tc.noi_plan, tc.noi_fact);
+                    const cls = levelClass(lvl);
+                    const maxNoi = Math.max(...TC_FIN_OBJECTS.map(t => t.noi_plan)) * 1.05;
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] text-foreground font-medium">{tc.name}</span>
+                          <div className="flex items-center gap-2 text-[11px] font-mono">
+                            <span className={cls.text}>{fmt(tc.noi_fact)}</span>
+                            <span className="text-muted-foreground">/ {fmt(tc.noi_plan)}</span>
+                            <span className={`font-semibold ${cls.text}`}>{deltaPct(tc.noi_plan, tc.noi_fact)}</span>
+                          </div>
+                        </div>
+                        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="absolute top-0 left-0 h-full bg-muted-foreground/20 rounded-full" style={{ width: `${(tc.noi_plan / maxNoi) * 100}%` }} />
+                          <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-700 ${lvl === "ok" ? "bg-green-500" : lvl === "warn" ? "bg-amber-500" : "bg-red-500"}`}
+                            style={{ width: `${(tc.noi_fact / maxNoi) * 100}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Правая — Арендаторы с долгами + детализация NOI */}
+            <div className="space-y-4">
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">Дебиторская задолженность</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {[
+                    { tc: "ТЦ «Атриум Парк»", tenant: "ООО «МегаСпорт»", amount: 2180, days: 47, level: "crit" as SignalLevel },
+                    { tc: "ТЦ «Атриум Парк»", tenant: "ИП Журавлёв А.В.", amount: 1240, days: 31, level: "crit" as SignalLevel },
+                    { tc: "ТЦ «Атриум Парк»", tenant: "ООО «ФудКорт+»", amount: 960, days: 18, level: "warn" as SignalLevel },
+                    { tc: "ТЦ «Галактика»", tenant: "ООО «КиноМакс»", amount: 1240, days: 22, level: "warn" as SignalLevel },
+                    { tc: "ТЦ «Нордик»", tenant: "ИП Прохоров К.С.", amount: 340, days: 8, level: "warn" as SignalLevel },
+                  ].map((d, i) => {
+                    const cls = levelClass(d.level);
+                    return (
+                      <div key={i} className={`px-4 py-3 border-l-2 ${cls.border}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-[11px] font-medium text-foreground">{d.tenant}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{d.tc}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-[13px] font-bold font-mono ${cls.text}`}>{(d.amount / 1000).toFixed(2)} млн</p>
+                            <p className="text-[10px] text-muted-foreground">{d.days} дн.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${cls.bg} ${cls.text}`}>{levelLabel(d.level)}</span>
+                          <span className="text-[10px] text-muted-foreground">{d.days > 30 ? "просрочка" : "контроль"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-card border border-border rounded overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border">
+                  <h2 className="text-sm font-semibold text-foreground">OPEX по статьям</h2>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  {[
+                    { label: "Эксплуатация", plan: 18, fact: 20 },
+                    { label: "Охрана", plan: 9, fact: 9 },
+                    { label: "Клининг", plan: 6, fact: 7 },
+                    { label: "Коммунальные", plan: 7, fact: 8 },
+                    { label: "Маркетинг ТК", plan: 3, fact: 2 },
+                  ].map((row, i) => {
+                    const lvl = deltaLevel(row.plan, row.fact, false);
+                    const cls = levelClass(lvl);
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] text-foreground">{row.label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[11px] font-mono font-medium ${cls.text}`}>{fmt(row.fact)}</span>
+                            <span className="text-[10px] text-muted-foreground">/ {fmt(row.plan)} млн</span>
+                          </div>
+                        </div>
+                        <ProgressBar value={row.fact} max={row.plan * 1.3} level={lvl} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── ГЛАВНЫЙ КОМПОНЕНТ ────────────────────────────────────────────────────────
-const DASHBOARDS: { id: DashboardId; label: string; icon: string; sub: string }[] = [
-  { id: "monitoring", label: "Мониторинг стройки", icon: "Building2", sub: "Прогресс объектов и сигналы" },
-  { id: "tk", label: "Управляемость ТК", icon: "Truck", sub: "Транспортные компании" },
+const DASHBOARDS: { id: DashboardId; label: string; icon: string }[] = [
+  { id: "monitoring", label: "Мониторинг стройки", icon: "Building2" },
+  { id: "tk", label: "Управляемость ТК", icon: "Store" },
+  { id: "finance", label: "Финансы", icon: "BarChart2" },
 ];
 
 export default function Index() {
@@ -523,12 +1156,12 @@ export default function Index() {
           {[
             { icon: "LayoutDashboard", label: "Дашборды", active: true },
             { icon: "Building2", label: "Объекты" },
-            { icon: "Truck", label: "Транспорт" },
+            { icon: "Store", label: "Торговые комплексы" },
             { icon: "Bell", label: "Сигналы" },
             { icon: "BarChart2", label: "Аналитика" },
             { icon: "FileText", label: "Отчёты" },
             { icon: "Users", label: "Команда" },
-          ].map((item) => (
+          ].map(item => (
             <button key={item.label} className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors"
               style={item.active ? { background: "hsl(214, 80%, 56%, 0.15)", color: "hsl(214, 80%, 72%)", fontWeight: 500 } : { color: "hsl(210, 20%, 55%)" }}>
               <Icon name={item.icon} size={16} />
@@ -575,16 +1208,12 @@ export default function Index() {
 
           {/* Dashboard switcher */}
           <div className="flex items-center gap-1.5">
-            {DASHBOARDS.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setActiveDash(d.id)}
+            {DASHBOARDS.map(d => (
+              <button key={d.id} onClick={() => setActiveDash(d.id)}
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition-all"
                 style={activeDash === d.id
                   ? { background: "hsl(220, 55%, 22%)", color: "#fff" }
-                  : { background: "transparent", color: "hsl(var(--muted-foreground))", border: "1px solid hsl(var(--border))" }
-                }
-              >
+                  : { background: "transparent", color: "hsl(var(--muted-foreground))", border: "1px solid hsl(var(--border))" }}>
                 <Icon name={d.icon} size={13} />
                 {d.label}
               </button>
@@ -592,9 +1221,9 @@ export default function Index() {
           </div>
         </header>
 
-        {/* Dashboard content */}
         {activeDash === "monitoring" && <MonitoringDashboard />}
         {activeDash === "tk" && <TkDashboard />}
+        {activeDash === "finance" && <FinanceDashboard />}
       </main>
     </div>
   );
