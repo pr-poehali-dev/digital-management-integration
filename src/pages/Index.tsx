@@ -3,7 +3,7 @@ import Icon from "@/components/ui/icon";
 
 // ─── ТИПЫ ─────────────────────────────────────────────────────────────────────
 type SignalLevel = "ok" | "warn" | "crit";
-type DashboardId = "monitoring" | "tk" | "finance";
+type DashboardId = "monitoring" | "tk" | "finance" | "objects";
 type FinanceSection = "holding" | "mkd" | "tc";
 
 // ─── ДАННЫЕ: МОНИТОРИНГ СТРОЙКИ (МКД) ────────────────────────────────────────
@@ -394,32 +394,7 @@ function MonitoringDashboard() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Объекты</h2>
-            </div>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Название", "Адрес", "Стадия", "ГИП"].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {PROJECTS.map(p => (
-                  <tr key={p.id} onClick={() => setActiveProject(activeProject === p.id ? null : p.id)}
-                    className="cursor-pointer transition-colors hover:bg-muted/50"
-                    style={activeProject === p.id ? { background: "hsl(220, 55%, 22%, 0.05)" } : {}}>
-                    <td className="px-5 py-3 font-medium text-foreground">{p.name}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{p.address}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{p.stage}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{p.manager}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
         </div>
 
         <div className="space-y-4">
@@ -584,50 +559,7 @@ function TkDashboard() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Список торговых комплексов</h2>
-            </div>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Объект", "Адрес", "Площадь", "Заполн.", "Выручка ф/п", "Дебит.", "Инц."].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {TRADING_CENTERS.map(c => {
-                  const occLevel = deltaLevel(c.occupancy_plan, c.occupancy_fact);
-                  const revLevel = deltaLevel(c.revenue_plan, c.revenue_fact);
-                  return (
-                    <tr key={c.id} onClick={() => setActiveTc(activeTc === c.id ? null : c.id)}
-                      className="cursor-pointer transition-colors hover:bg-muted/50"
-                      style={activeTc === c.id ? { background: "hsl(220, 55%, 22%, 0.05)" } : {}}>
-                      <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground text-[11px]">{c.address}</td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono">{c.area.toLocaleString("ru")} м²</td>
-                      <td className="px-4 py-3 font-mono"><span className={levelClass(occLevel).text}>{c.occupancy_fact}%</span></td>
-                      <td className="px-4 py-3 font-mono">
-                        <span className={levelClass(revLevel).text}>{c.revenue_fact.toLocaleString("ru")}</span>
-                        <span className="text-muted-foreground"> / {c.revenue_plan.toLocaleString("ru")}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {c.arrears > 0
-                          ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-status-warn status-warn">{(c.arrears / 1000).toFixed(1)} млн</span>
-                          : <span className="text-[10px] status-ok">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        {c.incidents > 0
-                          ? <span className="text-[10px] font-semibold status-crit">{c.incidents}</span>
-                          : <span className="text-[10px] text-muted-foreground">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+
         </div>
 
         <div>
@@ -1128,11 +1060,594 @@ function FinanceDashboard() {
   );
 }
 
+// ─── ДАННЫЕ: ОБЪЕКТЫ ──────────────────────────────────────────────────────────
+type ObjType = "жк" | "бц" | "тц";
+interface House {
+  id: number; name: string; floors: number; sections: number;
+  progress: number; stage: string; deadline: string; status: SignalLevel;
+}
+interface Queue {
+  id: number; name: string; houses: House[];
+}
+interface MkdObject {
+  id: number; type: "жк" | "бц"; name: string; address: string; city: string;
+  manager: string; totalArea: number; totalFlats?: number;
+  queues?: Queue[];
+  houses?: House[];
+}
+interface TcPremise {
+  id: number; num: string; floor: number; area: number;
+  tenant: string | null; category: string;
+  rent: number; arrears: number; contractEnd: string; status: SignalLevel;
+}
+interface TcObject {
+  id: number; type: "тц"; name: string; address: string; city: string;
+  manager: string; totalArea: number; openYear: number;
+  premises: TcPremise[];
+}
+type AnyObject = MkdObject | TcObject;
+
+const OBJECTS_DATA: AnyObject[] = [
+  {
+    id: 1, type: "жк", name: "ЖК «Северный парк»", address: "ул. Лесная, 12", city: "Екатеринбург",
+    manager: "Карпов А.В.", totalArea: 84500, totalFlats: 1240,
+    queues: [
+      {
+        id: 1, name: "Очередь 1",
+        houses: [
+          { id: 1, name: "Дом 1 (корп. А)", floors: 18, sections: 3, progress: 100, stage: "Сдан", deadline: "2023-12", status: "ok" },
+          { id: 2, name: "Дом 2 (корп. Б)", floors: 18, sections: 3, progress: 100, stage: "Сдан", deadline: "2024-03", status: "ok" },
+        ]
+      },
+      {
+        id: 2, name: "Очередь 2",
+        houses: [
+          { id: 3, name: "Дом 3 (корп. В)", floors: 22, sections: 4, progress: 48, stage: "Монолит — 14 эт.", deadline: "2025-12", status: "crit" },
+          { id: 4, name: "Дом 4 (корп. Г)", floors: 22, sections: 4, progress: 15, stage: "Фундамент", deadline: "2026-06", status: "warn" },
+        ]
+      },
+      {
+        id: 3, name: "Очередь 3",
+        houses: [
+          { id: 5, name: "Дом 5 (корп. Д)", floors: 14, sections: 2, progress: 0, stage: "Проектирование", deadline: "2027-09", status: "ok" },
+        ]
+      }
+    ]
+  },
+  {
+    id: 2, type: "жк", name: "ЖК «Речной квартал»", address: "пр. Набережный, 5", city: "Пермь",
+    manager: "Никитина О.С.", totalArea: 62000, totalFlats: 890,
+    queues: [
+      {
+        id: 1, name: "Очередь 1",
+        houses: [
+          { id: 6, name: "Дом 1", floors: 16, sections: 2, progress: 100, stage: "Сдан", deadline: "2023-06", status: "ok" },
+          { id: 7, name: "Дом 2", floors: 16, sections: 2, progress: 80, stage: "Фасад — секц. Б", deadline: "2025-09", status: "warn" },
+        ]
+      },
+      {
+        id: 2, name: "Очередь 2",
+        houses: [
+          { id: 8, name: "Дом 3", floors: 20, sections: 3, progress: 30, stage: "Монолит — 6 эт.", deadline: "2026-12", status: "ok" },
+          { id: 9, name: "Дом 4", floors: 20, sections: 3, progress: 5, stage: "Подземная часть", deadline: "2027-06", status: "ok" },
+        ]
+      }
+    ]
+  },
+  {
+    id: 3, type: "бц", name: "БЦ «Орион»", address: "ул. Промышленная, 3", city: "Екатеринбург",
+    manager: "Власов Д.Е.", totalArea: 38000,
+    houses: [
+      { id: 10, name: "Блок А (офисы)", floors: 12, sections: 1, progress: 54, stage: "Инженерия — 4 эт.", deadline: "2026-03", status: "warn" },
+      { id: 11, name: "Блок Б (паркинг)", floors: 4, sections: 1, progress: 85, stage: "Отделка", deadline: "2025-12", status: "ok" },
+    ]
+  },
+  {
+    id: 4, type: "тц", name: "ТЦ «Галактика»", address: "пр. Победы, 15", city: "Екатеринбург",
+    manager: "Семёнов И.Р.", totalArea: 42000, openYear: 2018,
+    premises: [
+      { id: 1, num: "А-101", floor: 1, area: 420, tenant: "Магнит", category: "Продукты", rent: 210, arrears: 0, contractEnd: "2026-12", status: "ok" },
+      { id: 2, num: "А-102", floor: 1, area: 280, tenant: "ДНС", category: "Электроника", rent: 196, arrears: 0, contractEnd: "2027-06", status: "ok" },
+      { id: 3, num: "А-103", floor: 1, area: 180, tenant: "Кофейня Бодрость", category: "Фудкорт", rent: 126, arrears: 0, contractEnd: "2025-11", status: "warn" },
+      { id: 4, num: "А-201", floor: 2, area: 650, tenant: "Спортмастер", category: "Спорт", rent: 325, arrears: 1240, contractEnd: "2026-09", status: "warn" },
+      { id: 5, num: "А-202", floor: 2, area: 320, tenant: null, category: "Свободно", rent: 0, arrears: 0, contractEnd: "—", status: "warn" },
+      { id: 6, num: "А-203", floor: 2, area: 240, tenant: "Детский мир", category: "Дети", rent: 168, arrears: 0, contractEnd: "2027-03", status: "ok" },
+      { id: 7, num: "А-301", floor: 3, area: 1200, tenant: "Кинотеатр Синема", category: "Развлечения", rent: 480, arrears: 0, contractEnd: "2028-01", status: "ok" },
+      { id: 8, num: "А-302", floor: 3, area: 380, tenant: "Фитнес-клуб Flex", category: "Спорт", rent: 190, arrears: 0, contractEnd: "2026-08", status: "ok" },
+    ]
+  },
+  {
+    id: 5, type: "тц", name: "ТЦ «Атриум Парк»", address: "шоссе Северное, 88", city: "Пермь",
+    manager: "Белова Т.А.", totalArea: 61000, openYear: 2015,
+    premises: [
+      { id: 9, num: "Б-001", floor: 1, area: 1800, tenant: "Лента", category: "Гипермаркет", rent: 540, arrears: 0, contractEnd: "2027-12", status: "ok" },
+      { id: 10, num: "Б-101", floor: 1, area: 450, tenant: "ООО «МегаСпорт»", category: "Спорт", rent: 270, arrears: 2180, contractEnd: "2026-06", status: "crit" },
+      { id: 11, num: "Б-102", floor: 1, area: 380, tenant: "ИП Журавлёв А.В.", category: "Одежда", rent: 228, arrears: 1240, contractEnd: "2025-12", status: "crit" },
+      { id: 12, num: "Б-103", floor: 1, area: 220, tenant: "ООО «ФудКорт+»", category: "Фудкорт", rent: 132, arrears: 960, contractEnd: "2026-03", status: "warn" },
+      { id: 13, num: "Б-201", floor: 2, area: 680, tenant: null, category: "Свободно", rent: 0, arrears: 0, contractEnd: "—", status: "crit" },
+      { id: 14, num: "Б-202", floor: 2, area: 520, tenant: null, category: "Свободно", rent: 0, arrears: 0, contractEnd: "—", status: "crit" },
+      { id: 15, num: "Б-203", floor: 2, area: 410, tenant: "Mothercare", category: "Дети", rent: 246, arrears: 0, contractEnd: "2026-11", status: "ok" },
+      { id: 16, num: "Б-301", floor: 3, area: 900, tenant: "Боулинг Play", category: "Развлечения", rent: 315, arrears: 0, contractEnd: "2027-08", status: "ok" },
+    ]
+  },
+  {
+    id: 6, type: "тц", name: "ТЦ «Меридиан»", address: "ул. Центральная, 3", city: "Пермь",
+    manager: "Козин Г.В.", totalArea: 28500, openYear: 2021,
+    premises: [
+      { id: 17, num: "В-101", floor: 1, area: 520, tenant: "Пятёрочка", category: "Продукты", rent: 260, arrears: 0, contractEnd: "2028-03", status: "ok" },
+      { id: 18, num: "В-102", floor: 1, area: 310, tenant: "M.Video", category: "Электроника", rent: 217, arrears: 0, contractEnd: "2027-09", status: "ok" },
+      { id: 19, num: "В-201", floor: 2, area: 420, tenant: "H&M", category: "Одежда", rent: 294, arrears: 0, contractEnd: "2027-06", status: "ok" },
+      { id: 20, num: "В-202", floor: 2, area: 280, tenant: "Золотое яблоко", category: "Красота", rent: 196, arrears: 0, contractEnd: "2026-12", status: "ok" },
+    ]
+  },
+  {
+    id: 7, type: "тц", name: "ТЦ «Нордик»", address: "ул. Лесная, 44", city: "Екатеринбург",
+    manager: "Рябов С.К.", totalArea: 18000, openYear: 2023,
+    premises: [
+      { id: 21, num: "Г-101", floor: 1, area: 380, tenant: "ВкусВилл", category: "Продукты", rent: 190, arrears: 0, contractEnd: "2027-01", status: "ok" },
+      { id: 22, num: "Г-102", floor: 1, area: 220, tenant: "Rendez-Vous", category: "Обувь", rent: 154, arrears: 0, contractEnd: "2026-09", status: "ok" },
+      { id: 23, num: "Г-103", floor: 1, area: 180, tenant: "ИП Прохоров К.С.", category: "Одежда", rent: 108, arrears: 340, contractEnd: "2026-06", status: "warn" },
+      { id: 24, num: "Г-201", floor: 2, area: 340, tenant: null, category: "Свободно", rent: 0, arrears: 0, contractEnd: "—", status: "warn" },
+    ]
+  },
+];
+
+const OBJ_TYPE_LABELS: Record<ObjType, string> = { жк: "ЖК", бц: "БЦ", тц: "ТЦ" };
+const OBJ_TYPE_ICONS: Record<ObjType, string> = { жк: "Building2", бц: "Briefcase", тц: "Store" };
+
+// ─── КОМПОНЕНТ: ОБЪЕКТЫ ───────────────────────────────────────────────────────
+function ObjectsDashboard() {
+  const [selectedObj, setSelectedObj] = useState<number | null>(null);
+  const [selectedQueue, setSelectedQueue] = useState<number | null>(null);
+  const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
+  const [filterType, setFilterType] = useState<ObjType | "all">("all");
+
+  const filtered = filterType === "all" ? OBJECTS_DATA : OBJECTS_DATA.filter(o => o.type === filterType);
+  const activeObj = selectedObj !== null ? OBJECTS_DATA.find(o => o.id === selectedObj) ?? null : null;
+
+  function resetDrill() { setSelectedObj(null); setSelectedQueue(null); setSelectedHouse(null); }
+
+  const isMkd = (o: AnyObject): o is MkdObject => o.type !== "тц";
+  const isTc = (o: AnyObject): o is TcObject => o.type === "тц";
+
+  // Хлебные крошки
+  function Breadcrumb() {
+    if (!activeObj) return null;
+    const queueObj = isMkd(activeObj) && selectedQueue !== null && activeObj.queues
+      ? activeObj.queues.find(q => q.id === selectedQueue) : null;
+    const houseObj = queueObj
+      ? queueObj.houses.find(h => h.id === selectedHouse)
+      : isMkd(activeObj) && activeObj.houses && selectedHouse !== null
+        ? activeObj.houses.find(h => h.id === selectedHouse) : null;
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <button onClick={resetDrill} className="hover:text-foreground transition-colors">Объекты</button>
+        <Icon name="ChevronRight" size={12} />
+        <button onClick={() => { setSelectedQueue(null); setSelectedHouse(null); }} className="hover:text-foreground transition-colors text-foreground font-medium">{activeObj.name}</button>
+        {queueObj && <><Icon name="ChevronRight" size={12} /><button onClick={() => setSelectedHouse(null)} className="hover:text-foreground transition-colors text-foreground font-medium">{queueObj.name}</button></>}
+        {houseObj && <><Icon name="ChevronRight" size={12} /><span className="text-foreground font-medium">{houseObj.name}</span></>}
+      </div>
+    );
+  }
+
+  // Детальная карточка дома
+  function HouseDetail({ house }: { house: House }) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Этажей", value: String(house.floors), icon: "Layers" },
+            { label: "Секций", value: String(house.sections), icon: "LayoutGrid" },
+            { label: "Готовность", value: `${house.progress}%`, icon: "CheckCircle2", level: house.status },
+          ].map((c, i) => {
+            const cls = c.level ? levelClass(c.level) : null;
+            return (
+              <div key={i} className={`bg-card border rounded p-4 ${cls ? `border-l-2 ${cls.border}` : "border-border"}`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon name={c.icon} size={15} className="text-muted-foreground" />
+                  <span className="text-[11px] text-muted-foreground">{c.label}</span>
+                </div>
+                <p className={`text-2xl font-bold ${cls ? cls.text : "text-foreground"}`}>{c.value}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="bg-card border border-border rounded overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">Прогресс строительства</h3>
+          </div>
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">{house.stage}</span>
+              <span className={`text-sm font-bold font-mono ${levelClass(house.status).text}`}>{house.progress}%</span>
+            </div>
+            <ProgressBar value={house.progress} level={house.status} />
+            <div className="flex items-center justify-between mt-3 text-[11px] text-muted-foreground">
+              <span>Срок сдачи: <span className="text-foreground font-medium">{house.deadline}</span></span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${levelClass(house.status).bg} ${levelClass(house.status).text}`}>{levelLabel(house.status)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">Плановые этапы</h3>
+          </div>
+          <div className="divide-y divide-border">
+            {[
+              { stage: "Нулевой цикл / фундамент", done: house.progress >= 10 },
+              { stage: "Монолит / конструктив", done: house.progress >= 40 },
+              { stage: "Фасад и кровля", done: house.progress >= 65 },
+              { stage: "Инженерные системы", done: house.progress >= 75 },
+              { stage: "Отделка и благоустройство", done: house.progress >= 90 },
+              { stage: "Приёмка и сдача", done: house.progress >= 100 },
+            ].map((s, i) => (
+              <div key={i} className="px-5 py-2.5 flex items-center gap-3">
+                <Icon name={s.done ? "CheckCircle2" : "Circle"} size={15} className={s.done ? "status-ok" : "text-muted-foreground"} />
+                <span className={`text-xs ${s.done ? "text-foreground" : "text-muted-foreground"}`}>{s.stage}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Детальная карточка объекта МКД
+  function MkdDetail({ obj }: { obj: MkdObject }) {
+    if (selectedHouse !== null) {
+      const allHouses = obj.queues
+        ? obj.queues.flatMap(q => q.houses)
+        : obj.houses ?? [];
+      const house = allHouses.find(h => h.id === selectedHouse);
+      if (house) return <HouseDetail house={house} />;
+    }
+
+    const allHouses = obj.queues ? obj.queues.flatMap(q => q.houses) : obj.houses ?? [];
+    const queueList = obj.queues ?? [];
+    const isBc = obj.type === "бц";
+
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: "Тип", value: OBJ_TYPE_LABELS[obj.type], icon: OBJ_TYPE_ICONS[obj.type] },
+            { label: "Город", value: obj.city, icon: "MapPin" },
+            { label: isBc ? "Корпусов" : "Домов", value: String(allHouses.length), icon: "Building2" },
+            { label: "Общая площадь", value: `${obj.totalArea.toLocaleString("ru")} м²`, icon: "Square" },
+          ].map((c, i) => (
+            <div key={i} className="bg-card border border-border rounded p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Icon name={c.icon} size={14} className="text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{c.label}</span>
+              </div>
+              <p className="text-sm font-semibold text-foreground">{c.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Очереди → дома (ЖК) */}
+        {!isBc && queueList.map(queue => (
+          <div key={queue.id} className="bg-card border border-border rounded overflow-hidden">
+            <button
+              className="w-full px-5 py-3.5 border-b border-border flex items-center justify-between hover:bg-muted/30 transition-colors"
+              onClick={() => setSelectedQueue(selectedQueue === queue.id ? null : queue.id)}>
+              <div className="flex items-center gap-2">
+                <Icon name="Layers" size={15} className="text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">{queue.name}</h3>
+                <span className="text-[11px] text-muted-foreground">· {queue.houses.length} дом{queue.houses.length > 1 ? "а" : ""}</span>
+              </div>
+              <Icon name={selectedQueue === queue.id ? "ChevronUp" : "ChevronDown"} size={15} className="text-muted-foreground" />
+            </button>
+            {(selectedQueue === queue.id || queueList.length === 1) && (
+              <div className="divide-y divide-border">
+                {queue.houses.map(house => (
+                  <button key={house.id} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors text-left"
+                    onClick={() => { setSelectedQueue(queue.id); setSelectedHouse(house.id); }}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${house.status !== "ok" ? "animate-pulse" : ""} ${levelClass(house.status).dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground">{house.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{house.stage}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-xs font-bold font-mono ${levelClass(house.status).text}`}>{house.progress}%</p>
+                      <p className="text-[10px] text-muted-foreground">{house.floors} эт. · {house.sections} секц.</p>
+                    </div>
+                    <div className="w-24 shrink-0">
+                      <ProgressBar value={house.progress} level={house.status} />
+                      <p className="text-[10px] text-muted-foreground mt-1">сдача: {house.deadline}</p>
+                    </div>
+                    <Icon name="ChevronRight" size={14} className="text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Блоки БЦ (без очередей) */}
+        {isBc && (
+          <div className="bg-card border border-border rounded overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Корпуса / блоки</h3>
+            </div>
+            <div className="divide-y divide-border">
+              {(obj.houses ?? []).map(house => (
+                <button key={house.id} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors text-left"
+                  onClick={() => setSelectedHouse(house.id)}>
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${house.status !== "ok" ? "animate-pulse" : ""} ${levelClass(house.status).dot}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground">{house.name}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{house.stage}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-xs font-bold font-mono ${levelClass(house.status).text}`}>{house.progress}%</p>
+                    <p className="text-[10px] text-muted-foreground">{house.floors} эт.</p>
+                  </div>
+                  <div className="w-24 shrink-0">
+                    <ProgressBar value={house.progress} level={house.status} />
+                    <p className="text-[10px] text-muted-foreground mt-1">сдача: {house.deadline}</p>
+                  </div>
+                  <Icon name="ChevronRight" size={14} className="text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Детальная карточка ТЦ
+  function TcDetail({ obj }: { obj: TcObject }) {
+    const [floorFilter, setFloorFilter] = useState<number | "all">("all");
+    const floors = [...new Set(obj.premises.map(p => p.floor))].sort();
+    const filtered = floorFilter === "all" ? obj.premises : obj.premises.filter(p => p.floor === floorFilter);
+    const total = obj.premises.length;
+    const occupied = obj.premises.filter(p => p.tenant !== null).length;
+    const totalArea = obj.premises.reduce((s, p) => s + p.area, 0);
+    const totalRent = obj.premises.reduce((s, p) => s + p.rent, 0);
+    const totalArrears = obj.premises.reduce((s, p) => s + p.arrears, 0);
+
+    const CATEGORIES: Record<string, string> = {
+      "Продукты": "🛒", "Электроника": "💻", "Фудкорт": "🍔", "Спорт": "⚽",
+      "Одежда": "👕", "Обувь": "👟", "Дети": "🧸", "Развлечения": "🎬",
+      "Красота": "💄", "Гипермаркет": "🏬", "Свободно": "—",
+    };
+
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: "Помещений всего", value: String(total), icon: "LayoutGrid" },
+            { label: "Занято / свободно", value: `${occupied} / ${total - occupied}`, icon: "Store", level: deltaLevel(total, occupied) },
+            { label: "Арендная площадь", value: `${totalArea.toLocaleString("ru")} м²`, icon: "Square" },
+            { label: "Аренда / мес.", value: `${(totalRent / 1000).toFixed(0)} тыс. ₽`, icon: "TrendingUp", level: "ok" as SignalLevel },
+          ].map((c, i) => {
+            const cls = c.level ? levelClass(c.level) : null;
+            return (
+              <div key={i} className={`bg-card border rounded p-4 ${cls ? `border-l-2 ${cls.border}` : "border-border"}`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon name={c.icon} size={14} className="text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{c.label}</span>
+                </div>
+                <p className={`text-xl font-bold ${cls ? cls.text : "text-foreground"}`}>{c.value}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {totalArrears > 0 && (
+          <div className="bg-status-warn border border-amber-200 rounded px-4 py-2.5 flex items-center gap-2.5">
+            <Icon name="AlertCircle" size={15} className="status-warn shrink-0" />
+            <p className="text-xs status-warn font-medium">Дебиторская задолженность: <span className="font-bold">{(totalArrears / 1000).toFixed(2)} млн ₽</span> по {obj.premises.filter(p => p.arrears > 0).length} арендаторам</p>
+          </div>
+        )}
+
+        <div className="bg-card border border-border rounded overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Помещения</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground mr-1">Этаж:</span>
+              {(["all", ...floors] as (number | "all")[]).map(f => (
+                <button key={f} onClick={() => setFloorFilter(f)}
+                  className="text-[10px] px-2 py-0.5 rounded transition-colors"
+                  style={floorFilter === f ? { background: "hsl(220, 55%, 22%)", color: "#fff" } : { color: "hsl(var(--muted-foreground))" }}>
+                  {f === "all" ? "Все" : `${f} эт.`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                {["Номер", "Этаж", "Площадь", "Арендатор", "Категория", "Аренда/мес.", "Долг", "Договор до", ""].map(h => (
+                  <th key={h} className="text-left px-4 py-2.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map(p => {
+                const cls = levelClass(p.status);
+                return (
+                  <tr key={p.id} className={`hover:bg-muted/30 transition-colors ${p.tenant === null ? "opacity-60" : ""}`}>
+                    <td className="px-4 py-2.5 font-mono font-medium text-foreground">{p.num}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{p.floor}</td>
+                    <td className="px-4 py-2.5 font-mono text-muted-foreground">{p.area.toLocaleString("ru")} м²</td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">
+                      {p.tenant ?? <span className="text-muted-foreground italic text-[11px]">Свободно</span>}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className="text-[11px] text-muted-foreground">{CATEGORIES[p.category] ?? ""} {p.category}</span>
+                    </td>
+                    <td className="px-4 py-2.5 font-mono">
+                      {p.rent > 0 ? <span className="text-foreground">{p.rent} тыс.</span> : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono">
+                      {p.arrears > 0
+                        ? <span className={`font-semibold ${cls.text}`}>{(p.arrears / 1000).toFixed(2)} млн</span>
+                        : <span className="text-muted-foreground text-[11px]">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-[11px]">{p.contractEnd}</td>
+                    <td className="px-3 py-2.5">
+                      {p.status !== "ok" && <div className={`w-2 h-2 rounded-full animate-pulse ${cls.dot}`} />}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-8 py-6">
+      {!activeObj ? (
+        // ── СПИСОК ОБЪЕКТОВ ──
+        <div className="space-y-5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Тип:</span>
+            {(["all", "жк", "бц", "тц"] as const).map(t => (
+              <button key={t} onClick={() => setFilterType(t)}
+                className="text-xs px-3 py-1 rounded border transition-colors"
+                style={filterType === t ? { background: "hsl(220, 55%, 22%)", color: "#fff", borderColor: "hsl(220, 55%, 22%)" } : { borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }}>
+                {t === "all" ? "Все" : OBJ_TYPE_LABELS[t]}
+              </button>
+            ))}
+            <span className="ml-auto text-[11px] text-muted-foreground">{filtered.length} объектов</span>
+          </div>
+
+          <div className="grid gap-3">
+            {filtered.map(obj => {
+              const isTcObj = isTc(obj);
+              const mkdObj = isMkd(obj) ? obj : null;
+              const tcObj = isTcObj ? obj : null;
+              const allHouses = mkdObj?.queues ? mkdObj.queues.flatMap(q => q.houses) : mkdObj?.houses ?? [];
+              const critHouses = allHouses.filter(h => h.status === "crit").length;
+              const warnHouses = allHouses.filter(h => h.status === "warn").length;
+              const freePremises = tcObj?.premises.filter(p => p.tenant === null).length ?? 0;
+              const critPremises = tcObj?.premises.filter(p => p.status === "crit").length ?? 0;
+              const overallLevel: SignalLevel = critHouses > 0 || critPremises > 0 ? "crit" : warnHouses > 0 || freePremises > 1 ? "warn" : "ok";
+              const cls = levelClass(overallLevel);
+
+              return (
+                <button key={obj.id} onClick={() => { setSelectedObj(obj.id); setSelectedQueue(null); setSelectedHouse(null); }}
+                  className={`w-full text-left bg-card border rounded-lg px-5 py-4 hover:shadow-md transition-all border-l-4 ${cls.border}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded flex items-center justify-center shrink-0 mt-0.5 ${cls.bg}`}>
+                        <Icon name={OBJ_TYPE_ICONS[obj.type]} size={18} className={cls.text} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cls.bg} ${cls.text}`}>{OBJ_TYPE_LABELS[obj.type]}</span>
+                          <h3 className="text-sm font-semibold text-foreground">{obj.name}</h3>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{obj.address}, {obj.city}</p>
+                        <p className="text-[11px] text-muted-foreground">Ответственный: {obj.manager}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 shrink-0 text-right">
+                      {mkdObj && (
+                        <>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{mkdObj.type === "бц" ? "Блоков" : "Домов"}</p>
+                            <p className="text-lg font-bold text-foreground">{allHouses.length}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Очередей</p>
+                            <p className="text-lg font-bold text-foreground">{mkdObj.queues?.length ?? "—"}</p>
+                          </div>
+                          {critHouses > 0 && <div>
+                            <p className="text-[10px] status-crit uppercase tracking-wide">Критично</p>
+                            <p className="text-lg font-bold status-crit">{critHouses}</p>
+                          </div>}
+                          {warnHouses > 0 && <div>
+                            <p className="text-[10px] status-warn uppercase tracking-wide">Внимание</p>
+                            <p className="text-lg font-bold status-warn">{warnHouses}</p>
+                          </div>}
+                        </>
+                      )}
+                      {tcObj && (
+                        <>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Помещений</p>
+                            <p className="text-lg font-bold text-foreground">{tcObj.premises.length}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Свободно</p>
+                            <p className={`text-lg font-bold ${freePremises > 0 ? "status-warn" : "status-ok"}`}>{freePremises}</p>
+                          </div>
+                          {tcObj.premises.some(p => p.arrears > 0) && <div>
+                            <p className="text-[10px] status-warn uppercase tracking-wide">Долги</p>
+                            <p className="text-lg font-bold status-warn">{(tcObj.premises.reduce((s, p) => s + p.arrears, 0) / 1000).toFixed(1)} млн</p>
+                          </div>}
+                        </>
+                      )}
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Площадь</p>
+                        <p className="text-sm font-semibold text-foreground">{obj.totalArea.toLocaleString("ru")} м²</p>
+                      </div>
+                      <Icon name="ChevronRight" size={18} className="text-muted-foreground ml-2" />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        // ── ДЕТАЛЬНАЯ СТРАНИЦА ОБЪЕКТА ──
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <Breadcrumb />
+            <button onClick={resetDrill} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 rounded transition-colors">
+              <Icon name="ArrowLeft" size={13} />
+              Назад к списку
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${levelClass(
+              (() => {
+                if (isMkd(activeObj)) {
+                  const h = activeObj.queues ? activeObj.queues.flatMap(q => q.houses) : activeObj.houses ?? [];
+                  return h.some(x => x.status === "crit") ? "crit" : h.some(x => x.status === "warn") ? "warn" : "ok";
+                }
+                return isTc(activeObj) && activeObj.premises.some(p => p.status === "crit") ? "crit" : "ok";
+              })()
+            ).bg}`}>
+              <Icon name={OBJ_TYPE_ICONS[activeObj.type]} size={20} className={levelClass(
+                (() => {
+                  if (isMkd(activeObj)) {
+                    const h = activeObj.queues ? activeObj.queues.flatMap(q => q.houses) : activeObj.houses ?? [];
+                    return h.some(x => x.status === "crit") ? "crit" : h.some(x => x.status === "warn") ? "warn" : "ok";
+                  }
+                  return isTc(activeObj) && activeObj.premises.some(p => p.status === "crit") ? "crit" : "ok";
+                })()
+              ).text} />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">{activeObj.name}</h2>
+              <p className="text-[11px] text-muted-foreground">{activeObj.address}, {activeObj.city} · {activeObj.manager}</p>
+            </div>
+          </div>
+
+          {isMkd(activeObj) && <MkdDetail obj={activeObj} />}
+          {isTc(activeObj) && <TcDetail obj={activeObj} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── ГЛАВНЫЙ КОМПОНЕНТ ────────────────────────────────────────────────────────
 const DASHBOARDS: { id: DashboardId; label: string; icon: string }[] = [
   { id: "monitoring", label: "Мониторинг стройки", icon: "Building2" },
   { id: "tk", label: "Управляемость ТК", icon: "Store" },
   { id: "finance", label: "Финансы", icon: "BarChart2" },
+  { id: "objects", label: "Объекты", icon: "FolderOpen" },
 ];
 
 export default function Index() {
@@ -1154,20 +1669,24 @@ export default function Index() {
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {[
-            { icon: "LayoutDashboard", label: "Дашборды", active: true },
-            { icon: "Building2", label: "Объекты" },
-            { icon: "Store", label: "Торговые комплексы" },
-            { icon: "Bell", label: "Сигналы" },
-            { icon: "BarChart2", label: "Аналитика" },
-            { icon: "FileText", label: "Отчёты" },
-            { icon: "Users", label: "Команда" },
-          ].map(item => (
-            <button key={item.label} className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors"
-              style={item.active ? { background: "hsl(214, 80%, 56%, 0.15)", color: "hsl(214, 80%, 72%)", fontWeight: 500 } : { color: "hsl(210, 20%, 55%)" }}>
-              <Icon name={item.icon} size={16} />
-              {item.label}
-            </button>
-          ))}
+            { icon: "LayoutDashboard", label: "Дашборды", dash: ["monitoring", "tk", "finance"] as DashboardId[] },
+            { icon: "FolderOpen", label: "Объекты", dash: ["objects"] as DashboardId[] },
+            { icon: "Bell", label: "Сигналы", dash: [] as DashboardId[] },
+            { icon: "BarChart2", label: "Аналитика", dash: [] as DashboardId[] },
+            { icon: "FileText", label: "Отчёты", dash: [] as DashboardId[] },
+            { icon: "Users", label: "Команда", dash: [] as DashboardId[] },
+          ].map(item => {
+            const active = item.dash.includes(activeDash);
+            return (
+              <button key={item.label}
+                onClick={() => { if (item.dash.length > 0) setActiveDash(item.dash[0]); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors"
+                style={active ? { background: "hsl(214, 80%, 56%, 0.15)", color: "hsl(214, 80%, 72%)", fontWeight: 500 } : { color: "hsl(210, 20%, 55%)" }}>
+                <Icon name={item.icon} size={16} />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="px-3 pb-5 pt-4" style={{ borderTop: "1px solid hsl(220, 22%, 20%)" }}>
@@ -1190,7 +1709,7 @@ export default function Index() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-base font-semibold text-foreground tracking-tight">
-                {DASHBOARDS.find(d => d.id === activeDash)?.label}
+                {activeDash === "objects" ? "Объекты" : DASHBOARDS.find(d => d.id === activeDash)?.label}
               </h1>
               <p className="text-[11px] text-muted-foreground mt-0.5">23 марта 2026 · Данные обновлены 09:17</p>
             </div>
@@ -1224,6 +1743,7 @@ export default function Index() {
         {activeDash === "monitoring" && <MonitoringDashboard />}
         {activeDash === "tk" && <TkDashboard />}
         {activeDash === "finance" && <FinanceDashboard />}
+        {activeDash === "objects" && <ObjectsDashboard />}
       </main>
     </div>
   );
